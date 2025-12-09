@@ -2,9 +2,9 @@ package domain.drawing;
 
 
 
-public record Line(Point start, Point end) {
+public record Line(Point start, Point end) implements Segment {
 
-    public double distance(){
+    public double length(){
         double dx = end.x() - start.x();
         double dy = end.y() - start.y();
         return Math.sqrt(Math.pow(dx,2)+Math.pow(dy,2));
