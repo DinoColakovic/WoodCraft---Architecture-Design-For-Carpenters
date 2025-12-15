@@ -1,42 +1,51 @@
-# WoodCraft – JavaFX Desktop Application
+# 🪵 WoodCraft – JavaFX Desktop Application
 
-## Opis
-WoodCraft je JavaFX desktop aplikacija namijenjena podršci dizajnu i proizvodnji namještaja.  
-Aplikacija je razvijena kao akademski projekat s fokusom na pravilnu arhitekturu, rad s bazom podataka i sigurnu autentifikaciju korisnika.
+## 📌 Opis
+**WoodCraft** je JavaFX desktop aplikacija namijenjena podršci dizajnu i proizvodnji namještaja.  
+Aplikacija je razvijena kao akademski projekat s fokusom na **MVC arhitekturu**, rad s bazom podataka i **sigurnu autentifikaciju korisnika**.
 
-## Tehnologije
-- Java 21  
-- JavaFX (FXML)  
-- Gradle (Groovy DSL)  
-- MySQL  
-- JDBC  
-- bcrypt (hashiranje lozinki)
+---
 
-## Arhitektura
-Aplikacija je implementirana po MVC (Model–View–Controller) arhitekturi.
+## 🛠️ Tehnologije
+- **Java 21**
+- **JavaFX (FXML)**
+- **Gradle (Groovy DSL)**
+- **MySQL**
+- **JDBC**
+- **bcrypt** (hashiranje lozinki)
 
-- Model – domenski modeli aplikacije  
-- View – JavaFX FXML fajlovi  
-- Controller – JavaFX kontroleri  
+---
 
-Pristup bazi podataka realizovan je kroz DAO sloj.
+## 🧩 Arhitektura
+Aplikacija je implementirana po **MVC (Model–View–Controller)** arhitekturi.
 
-## Trenutne funkcionalnosti
-- Login korisnika putem MySQL baze  
-- Hashiranje i provjera lozinki (bcrypt)  
-- Razlikovanje korisničkih uloga (ADMIN / USER)  
-- JavaFX grafički interfejs
+- **Model** – domenski modeli aplikacije  
+- **View** – JavaFX FXML fajlovi  
+- **Controller** – JavaFX kontroleri  
 
-## Pokretanje aplikacije
+Pristup bazi podataka realizovan je kroz **DAO sloj**, čime je osigurana jasna separacija odgovornosti.
+
+---
+
+## ✅ Trenutne funkcionalnosti
+- Login korisnika putem **MySQL baze**
+- Hashiranje i provjera lozinki (**bcrypt**)
+- Razlikovanje korisničkih uloga (**ADMIN / USER**)
+- JavaFX grafički korisnički interfejs
+
+---
+
+## ▶️ Pokretanje aplikacije
+
 ### Preduslovi
-- JDK 21  
-- MySQL Community Server  
+- Instaliran **JDK 21**
+- Instaliran **MySQL Community Server**
 
 ### Koraci
 1. Klonirati repozitorij  
-2. Kreirati bazu `woodcraft` i tabelu `users`  
+2. Kreirati MySQL bazu `woodcraft` i tabelu `users`  
 3. Podesiti kredencijale baze u `DBConnection.java`  
-4. Pokrenuti aplikaciju: ./gradlew run
+4. Pokrenuti aplikaciju:
 
-## Napomena
-Registracija korisnika i dodatne funkcionalnosti planirane su kao naredni koraci razvoja.
+```bash
+./gradlew run
