@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
+<BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="CONTROLLER_NAME"
-            prefHeight="400.0" prefWidth="600.0">
+            fx:controller="ba.woodcraft.ui.controller.CanvasController"
+            prefHeight="600.0" prefWidth="900.0">
 
-</AnchorPane>
+    <top>
+        <ToolBar>
+            <ToggleButton fx:id="lineTool" text="Line"/>
+            <ToggleButton fx:id="rectangleTool" text="Rectangle"/>
+            <ToggleButton fx:id="bezierTool" text="Bezier"/>
+            <Separator orientation="VERTICAL"/>
+            <Button text="Clear" onAction="#onClear"/>
+            <Button text="Logout" onAction="#onLogout"/>
+        </ToolBar>
+    </top>
+
+    <center>
+        <Pane fx:id="drawingPane"
+              onMousePressed="#onMousePressed"
+              onMouseDragged="#onMouseDragged"
+              onMouseReleased="#onMouseReleased"
+              style="-fx-background-color: #f7f7f7;"
+              BorderPane.alignment="CENTER"/>
+    </center>
+</BorderPane>

@@ -10,5 +10,6 @@
     <Label text="User Dashboard" />
     <Label fx:id="welcomeLabel" text="Dobrodošli!" />
 
+    <Button text="Open Canvas" onAction="#onOpenCanvas" maxWidth="200"/>
     <Button text="Logout" onAction="#onLogout" maxWidth="200"/>
 </VBox>

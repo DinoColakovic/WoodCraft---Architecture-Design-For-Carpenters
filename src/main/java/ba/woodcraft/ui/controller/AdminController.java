@@ -16,4 +16,9 @@ public class AdminController {
     public void onLogout(ActionEvent event) {
         SceneNavigator.show("view/login.fxml");
     }
+
+    @FXML
+    public void onOpenCanvas(ActionEvent event) {
+        SceneNavigator.show("view/canvas.fxml");
+    }
 }
