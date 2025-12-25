@@ -27,6 +27,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     implementation 'org.mindrot:jbcrypt:0.4'
     implementation 'com.mysql:mysql-connector-j:8.4.0'
+    implementation 'org.apache.pdfbox:pdfbox:2.0.30'
 
 }
 
