@@ -2,29 +2,49 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.Group?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="ba.woodcraft.ui.controller.CanvasController"
-            prefHeight="600.0" prefWidth="900.0">
+            prefHeight="600.0"
+            prefWidth="900.0">
 
     <top>
         <ToolBar>
             <ToggleButton fx:id="lineTool" text="Line"/>
             <ToggleButton fx:id="rectangleTool" text="Rectangle"/>
+            <ToggleButton fx:id="circleTool" text="Circle"/>
             <ToggleButton fx:id="bezierTool" text="Bezier"/>
+
             <Separator orientation="VERTICAL"/>
+
+            <Button text="Zoom +" onAction="#onZoomIn"/>
+            <Button text="Zoom -" onAction="#onZoomOut"/>
+            <Button text="Reset" onAction="#onZoomReset"/>
+
+            <Separator orientation="VERTICAL"/>
+
             <Button text="Clear" onAction="#onClear"/>
             <Button text="Logout" onAction="#onLogout"/>
         </ToolBar>
     </top>
 
     <center>
-        <Pane fx:id="drawingPane"
-              onMousePressed="#onMousePressed"
-              onMouseDragged="#onMouseDragged"
-              onMouseReleased="#onMouseReleased"
-              style="-fx-background-color: #f7f7f7;"
-              BorderPane.alignment="CENTER"/>
+        <StackPane fx:id="canvasHost" style="-fx-background-color: #d0d0d0;" BorderPane.alignment="CENTER">
+
+            <Pane style="-fx-background-color: #cccccc;" prefWidth="900" prefHeight="900"/>
+
+            <Group fx:id="zoomGroup">
+                <Pane fx:id="drawingPane"
+                      style="-fx-background-color: white; -fx-border-color: black;"
+                      prefWidth="600" prefHeight="600"
+                      onMousePressed="#onMousePressed"
+                      onMouseDragged="#onMouseDragged"
+                      onMouseReleased="#onMouseReleased"/>
+            </Group>
+
+        </StackPane>
     </center>
+
 </BorderPane>

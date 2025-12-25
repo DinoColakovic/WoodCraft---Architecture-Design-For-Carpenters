@@ -9,6 +9,7 @@ public class MainApp extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("WoodCraft");
+
         SceneNavigator.init(primaryStage);
         SceneNavigator.show("view/login.fxml");
     }

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CompositeShape implements Drawable {
+
     private final List<Drawable> shapes = new ArrayList<>();
     private final Group group = new Group();
 
@@ -28,6 +29,6 @@ public class CompositeShape implements Drawable {
 
     @Override
     public void update(double x, double y) {
-        // Composite is static; individual shapes handle updates.
+        // Composite is static; individual shapes handle updates
     }
 }
