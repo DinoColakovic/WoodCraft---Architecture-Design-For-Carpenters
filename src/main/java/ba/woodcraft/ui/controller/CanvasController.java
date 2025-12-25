@@ -276,7 +276,6 @@ public class CanvasController {
             return;
         }
         if (activeTool == Tool.BEZIER) {
-            updateBezierPreview(getCanvasPoint(event));
             return;
         }
         if (activeShape != null) {
@@ -303,7 +302,12 @@ public class CanvasController {
 
     @FXML
     public void onMouseMoved(MouseEvent event) {
-        if (!isSnapToolActive() || activeShape != null || (activeTool == Tool.BEZIER && bezierStage != BezierStage.NONE)) {
+        if (activeTool == Tool.BEZIER && bezierStage != BezierStage.NONE) {
+            updateBezierPreview(getCanvasPoint(event));
+            hideSnapIndicator();
+            return;
+        }
+        if (!isSnapToolActive() || activeShape != null) {
             hideSnapIndicator();
             return;
         }
