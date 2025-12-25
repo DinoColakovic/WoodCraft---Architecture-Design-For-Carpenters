@@ -24,7 +24,7 @@ public class SelectionOverlay {
     private Pane host;
     private boolean active;
     private DragMode dragMode = DragMode.NONE;
-    private Point2D dragStartScene;
+    private Point2D dragStartParent;
     private Bounds dragStartBounds;
     private double startLayoutX;
     private double startLayoutY;
@@ -146,7 +146,7 @@ public class SelectionOverlay {
     private void beginMove(MouseEvent event) {
         if (target == null) return;
         dragMode = DragMode.MOVE;
-        dragStartScene = new Point2D(event.getSceneX(), event.getSceneY());
+        dragStartParent = toParentPoint(event);
         startLayoutX = target.getLayoutX();
         startLayoutY = target.getLayoutY();
         event.consume();
@@ -154,8 +154,8 @@ public class SelectionOverlay {
 
     private void updateMove(MouseEvent event) {
         if (target == null || dragMode != DragMode.MOVE) return;
-        Point2D current = new Point2D(event.getSceneX(), event.getSceneY());
-        Point2D delta = current.subtract(dragStartScene);
+        Point2D current = toParentPoint(event);
+        Point2D delta = current.subtract(dragStartParent);
         target.setLayoutX(startLayoutX + delta.getX());
         target.setLayoutY(startLayoutY + delta.getY());
         update();
@@ -165,7 +165,7 @@ public class SelectionOverlay {
     private void beginResize(MouseEvent event, DragMode mode) {
         if (target == null) return;
         dragMode = mode;
-        dragStartScene = new Point2D(event.getSceneX(), event.getSceneY());
+        dragStartParent = toParentPoint(event);
         dragStartBounds = target.getBoundsInParent();
         startScaleX = target.getScaleX();
         startScaleY = target.getScaleY();
@@ -176,8 +176,8 @@ public class SelectionOverlay {
 
     private void updateResize(MouseEvent event) {
         if (target == null || !dragMode.name().startsWith("RESIZE")) return;
-        Point2D current = new Point2D(event.getSceneX(), event.getSceneY());
-        Point2D delta = current.subtract(dragStartScene);
+        Point2D current = toParentPoint(event);
+        Point2D delta = current.subtract(dragStartParent);
         double width = Math.max(1.0, dragStartBounds.getWidth());
         double height = Math.max(1.0, dragStartBounds.getHeight());
         double scaleX = startScaleX;
@@ -217,7 +217,7 @@ public class SelectionOverlay {
     private void beginRotate(MouseEvent event) {
         if (target == null) return;
         dragMode = DragMode.ROTATE;
-        dragStartScene = new Point2D(event.getSceneX(), event.getSceneY());
+        dragStartParent = toParentPoint(event);
         dragStartBounds = target.getBoundsInParent();
         startRotate = target.getRotate();
         anchorX = dragStartBounds.getMinX() + dragStartBounds.getWidth() / 2.0;
@@ -227,10 +227,10 @@ public class SelectionOverlay {
 
     private void updateRotate(MouseEvent event) {
         if (target == null || dragMode != DragMode.ROTATE) return;
-        Point2D current = new Point2D(event.getSceneX(), event.getSceneY());
+        Point2D current = toParentPoint(event);
         double startAngle = Math.toDegrees(Math.atan2(
-                dragStartScene.getY() - anchorY,
-                dragStartScene.getX() - anchorX
+                dragStartParent.getY() - anchorY,
+                dragStartParent.getX() - anchorX
         ));
         double currentAngle = Math.toDegrees(Math.atan2(
                 current.getY() - anchorY,
@@ -239,6 +239,13 @@ public class SelectionOverlay {
         target.setRotate(startRotate + (currentAngle - startAngle));
         update();
         event.consume();
+    }
+
+    private Point2D toParentPoint(MouseEvent event) {
+        if (host == null) {
+            return new Point2D(event.getSceneX(), event.getSceneY());
+        }
+        return host.sceneToLocal(event.getSceneX(), event.getSceneY());
     }
 
     private void endDrag() {
