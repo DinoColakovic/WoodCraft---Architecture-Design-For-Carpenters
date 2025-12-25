@@ -8,6 +8,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Affine;
 
@@ -36,6 +38,11 @@ public class SelectionOverlay {
     private double startRotate;
     private double anchorX;
     private double anchorY;
+    private Point2D lineStartParent;
+    private Point2D lineEndParent;
+    private Point2D quadStartParent;
+    private Point2D quadEndParent;
+    private Point2D quadControlParent;
 
     private enum DragMode {
         NONE,
@@ -174,11 +181,13 @@ public class SelectionOverlay {
         if (target == null) return;
         dragMode = mode;
         dragStartParent = toParentPoint(event);
+        normalizeScaleForPointGeometry();
         dragStartBounds = target.getBoundsInParent();
         startScaleX = target.getScaleX();
         startScaleY = target.getScaleY();
         anchorX = dragStartBounds.getMinX() + dragStartBounds.getWidth() / 2.0;
         anchorY = dragStartBounds.getMinY() + dragStartBounds.getHeight() / 2.0;
+        cachePointGeometry();
         event.consume();
     }
 
@@ -216,8 +225,14 @@ public class SelectionOverlay {
             }
         }
 
-        target.setScaleX(scaleX);
-        target.setScaleY(scaleY);
+        if (target instanceof Line line) {
+            applyScaledLine(line, scaleX, scaleY);
+        } else if (target instanceof QuadCurve quadCurve) {
+            applyScaledQuadCurve(quadCurve, scaleX, scaleY);
+        } else {
+            target.setScaleX(scaleX);
+            target.setScaleY(scaleY);
+        }
         update();
         event.consume();
     }
@@ -247,6 +262,96 @@ public class SelectionOverlay {
         target.setRotate(startRotate + (currentAngle - startAngle));
         update();
         event.consume();
+    }
+
+    private void normalizeScaleForPointGeometry() {
+        if (!(target instanceof Line || target instanceof QuadCurve)) {
+            return;
+        }
+        if (target.getScaleX() == 1.0 && target.getScaleY() == 1.0) {
+            return;
+        }
+        if (target instanceof Line line) {
+            Point2D startParent = line.localToParent(line.getStartX(), line.getStartY());
+            Point2D endParent = line.localToParent(line.getEndX(), line.getEndY());
+            line.setScaleX(1.0);
+            line.setScaleY(1.0);
+            Point2D startLocal = line.parentToLocal(startParent);
+            Point2D endLocal = line.parentToLocal(endParent);
+            line.setStartX(startLocal.getX());
+            line.setStartY(startLocal.getY());
+            line.setEndX(endLocal.getX());
+            line.setEndY(endLocal.getY());
+        } else if (target instanceof QuadCurve quadCurve) {
+            Point2D startParent = quadCurve.localToParent(quadCurve.getStartX(), quadCurve.getStartY());
+            Point2D endParent = quadCurve.localToParent(quadCurve.getEndX(), quadCurve.getEndY());
+            Point2D controlParent = quadCurve.localToParent(quadCurve.getControlX(), quadCurve.getControlY());
+            quadCurve.setScaleX(1.0);
+            quadCurve.setScaleY(1.0);
+            Point2D startLocal = quadCurve.parentToLocal(startParent);
+            Point2D endLocal = quadCurve.parentToLocal(endParent);
+            Point2D controlLocal = quadCurve.parentToLocal(controlParent);
+            quadCurve.setStartX(startLocal.getX());
+            quadCurve.setStartY(startLocal.getY());
+            quadCurve.setEndX(endLocal.getX());
+            quadCurve.setEndY(endLocal.getY());
+            quadCurve.setControlX(controlLocal.getX());
+            quadCurve.setControlY(controlLocal.getY());
+        }
+    }
+
+    private void cachePointGeometry() {
+        lineStartParent = null;
+        lineEndParent = null;
+        quadStartParent = null;
+        quadEndParent = null;
+        quadControlParent = null;
+        if (target instanceof Line line) {
+            lineStartParent = line.localToParent(line.getStartX(), line.getStartY());
+            lineEndParent = line.localToParent(line.getEndX(), line.getEndY());
+        } else if (target instanceof QuadCurve quadCurve) {
+            quadStartParent = quadCurve.localToParent(quadCurve.getStartX(), quadCurve.getStartY());
+            quadEndParent = quadCurve.localToParent(quadCurve.getEndX(), quadCurve.getEndY());
+            quadControlParent = quadCurve.localToParent(quadCurve.getControlX(), quadCurve.getControlY());
+        }
+    }
+
+    private void applyScaledLine(Line line, double scaleX, double scaleY) {
+        if (lineStartParent == null || lineEndParent == null) {
+            return;
+        }
+        Point2D startParent = scalePoint(lineStartParent, scaleX, scaleY);
+        Point2D endParent = scalePoint(lineEndParent, scaleX, scaleY);
+        Point2D startLocal = line.parentToLocal(startParent);
+        Point2D endLocal = line.parentToLocal(endParent);
+        line.setStartX(startLocal.getX());
+        line.setStartY(startLocal.getY());
+        line.setEndX(endLocal.getX());
+        line.setEndY(endLocal.getY());
+    }
+
+    private void applyScaledQuadCurve(QuadCurve quadCurve, double scaleX, double scaleY) {
+        if (quadStartParent == null || quadEndParent == null || quadControlParent == null) {
+            return;
+        }
+        Point2D startParent = scalePoint(quadStartParent, scaleX, scaleY);
+        Point2D endParent = scalePoint(quadEndParent, scaleX, scaleY);
+        Point2D controlParent = scalePoint(quadControlParent, scaleX, scaleY);
+        Point2D startLocal = quadCurve.parentToLocal(startParent);
+        Point2D endLocal = quadCurve.parentToLocal(endParent);
+        Point2D controlLocal = quadCurve.parentToLocal(controlParent);
+        quadCurve.setStartX(startLocal.getX());
+        quadCurve.setStartY(startLocal.getY());
+        quadCurve.setEndX(endLocal.getX());
+        quadCurve.setEndY(endLocal.getY());
+        quadCurve.setControlX(controlLocal.getX());
+        quadCurve.setControlY(controlLocal.getY());
+    }
+
+    private Point2D scalePoint(Point2D point, double scaleX, double scaleY) {
+        double x = anchorX + (point.getX() - anchorX) * scaleX;
+        double y = anchorY + (point.getY() - anchorY) * scaleY;
+        return new Point2D(x, y);
     }
 
     private Point2D toParentPoint(MouseEvent event) {
