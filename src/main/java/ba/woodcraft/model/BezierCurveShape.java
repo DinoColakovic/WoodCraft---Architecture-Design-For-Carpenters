@@ -7,7 +7,7 @@ import javafx.scene.shape.QuadCurve;
 public class BezierCurveShape implements Drawable {
     private final double startX;
     private final double startY;
-    private final QuadCurve curve;
+    private final CubicCurve curve;
     private double endX;
     private double endY;
 
@@ -16,7 +16,7 @@ public class BezierCurveShape implements Drawable {
         this.startY = startY;
         this.endX = startX;
         this.endY = startY;
-        this.curve = new QuadCurve();
+        this.curve = new CubicCurve();
         this.curve.setStartX(startX);
         this.curve.setStartY(startY);
         this.curve.setEndX(startX);
@@ -47,7 +47,13 @@ public class BezierCurveShape implements Drawable {
     }
 
     public void setControlPoints(double controlX, double controlY) {
-        curve.setControlX(controlX);
-        curve.setControlY(controlY);
+        double midX = (startX + endX) / 2.0;
+        double midY = (startY + endY) / 2.0;
+        double mirrorX = 2 * midX - controlX;
+        double mirrorY = 2 * midY - controlY;
+        curve.setControlX1(controlX);
+        curve.setControlY1(controlY);
+        curve.setControlX2(mirrorX);
+        curve.setControlY2(mirrorY);
     }
 }

@@ -14,7 +14,6 @@ import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.PathElement;
-import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.QuadCurveTo;
 import javafx.scene.shape.Rectangle;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -89,25 +88,6 @@ public class PdfExportService implements ExportService {
                     (float) curve.getControlY2(),
                     (float) curve.getEndX(),
                     (float) curve.getEndY()
-            );
-            content.stroke();
-        } else if (node instanceof QuadCurve quadCurve) {
-            if (!applyStroke(content, quadCurve.getStroke(), quadCurve.getStrokeWidth())) {
-                content.restoreGraphicsState();
-                return;
-            }
-            double c1x = quadCurve.getStartX() + (2.0 / 3.0) * (quadCurve.getControlX() - quadCurve.getStartX());
-            double c1y = quadCurve.getStartY() + (2.0 / 3.0) * (quadCurve.getControlY() - quadCurve.getStartY());
-            double c2x = quadCurve.getEndX() + (2.0 / 3.0) * (quadCurve.getControlX() - quadCurve.getEndX());
-            double c2y = quadCurve.getEndY() + (2.0 / 3.0) * (quadCurve.getControlY() - quadCurve.getEndY());
-            content.moveTo((float) quadCurve.getStartX(), (float) quadCurve.getStartY());
-            content.curveTo(
-                    (float) c1x,
-                    (float) c1y,
-                    (float) c2x,
-                    (float) c2y,
-                    (float) quadCurve.getEndX(),
-                    (float) quadCurve.getEndY()
             );
             content.stroke();
         } else if (node instanceof Path path) {

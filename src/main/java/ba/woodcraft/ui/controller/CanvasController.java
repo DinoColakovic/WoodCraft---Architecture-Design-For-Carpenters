@@ -263,8 +263,6 @@ public class CanvasController {
         Point2D p = snapPoint != null ? snapPoint : getCanvasPoint(event);
         if (activeTool == Tool.BEZIER) {
             handleBezierPress(p);
-            hideSnapIndicator();
-            return;
         } else {
             activeShape = createShape(p.getX(), p.getY());
             if (activeShape != null) drawingPane.getChildren().add(activeShape.getNode());
@@ -278,7 +276,6 @@ public class CanvasController {
             return;
         }
         if (activeTool == Tool.BEZIER) {
-            updateBezierPreview(getCanvasPoint(event));
             return;
         }
         if (activeShape != null) {
@@ -293,7 +290,6 @@ public class CanvasController {
             return;
         }
         if (activeTool == Tool.BEZIER) {
-            finalizeBezierStage();
             return;
         }
         if (activeShape != null) {
@@ -307,6 +303,7 @@ public class CanvasController {
     @FXML
     public void onMouseMoved(MouseEvent event) {
         if (activeTool == Tool.BEZIER && bezierStage != BezierStage.NONE) {
+            updateBezierPreview(getCanvasPoint(event));
             hideSnapIndicator();
             return;
         }
@@ -373,6 +370,17 @@ public class CanvasController {
             activeBezier = new BezierCurveShape(point.getX(), point.getY());
             drawingPane.getChildren().add(activeBezier.getNode());
             bezierStage = BezierStage.END;
+            return;
+        }
+        if (bezierStage == BezierStage.END && activeBezier != null) {
+            activeBezier.setEnd(point.getX(), point.getY());
+            bezierStage = BezierStage.CONTROL;
+            return;
+        }
+        if (bezierStage == BezierStage.CONTROL && activeBezier != null) {
+            activeBezier.setControlPoints(point.getX(), point.getY());
+            activeBezier = null;
+            bezierStage = BezierStage.NONE;
         }
     }
 
@@ -384,18 +392,6 @@ public class CanvasController {
             activeBezier.setEnd(point.getX(), point.getY());
         } else if (bezierStage == BezierStage.CONTROL) {
             activeBezier.setControlPoints(point.getX(), point.getY());
-        }
-    }
-
-    private void finalizeBezierStage() {
-        if (activeBezier == null) {
-            return;
-        }
-        if (bezierStage == BezierStage.END) {
-            bezierStage = BezierStage.CONTROL;
-        } else if (bezierStage == BezierStage.CONTROL) {
-            activeBezier = null;
-            bezierStage = BezierStage.NONE;
         }
     }
 
