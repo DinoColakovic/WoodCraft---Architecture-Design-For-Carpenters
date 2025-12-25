@@ -2,6 +2,7 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.Group?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
@@ -11,25 +12,32 @@
             prefWidth="900.0">
 
     <top>
-        <ToolBar>
-            <ToggleButton fx:id="selectTool" text="Select"/>
-            <ToggleButton fx:id="lineTool" text="Line"/>
-            <ToggleButton fx:id="rectangleTool" text="Rectangle"/>
-            <ToggleButton fx:id="circleTool" text="Circle"/>
-            <ToggleButton fx:id="bezierTool" text="Bezier"/>
+        <VBox>
+            <ToolBar>
+                <ToggleButton fx:id="selectTool" text="Select"/>
+                <ToggleButton fx:id="lineTool" text="Line"/>
+                <ToggleButton fx:id="rectangleTool" text="Rectangle"/>
+                <ToggleButton fx:id="circleTool" text="Circle"/>
+                <ToggleButton fx:id="bezierTool" text="Bezier"/>
 
-            <Separator orientation="VERTICAL"/>
+                <Separator orientation="VERTICAL"/>
 
-            <Button text="Zoom +" onAction="#onZoomIn"/>
-            <Button text="Zoom -" onAction="#onZoomOut"/>
-            <Button text="Reset" onAction="#onZoomReset"/>
+                <Button text="Zoom +" onAction="#onZoomIn"/>
+                <Button text="Zoom -" onAction="#onZoomOut"/>
+                <Button text="Reset" onAction="#onZoomReset"/>
 
-            <Separator orientation="VERTICAL"/>
+                <Separator orientation="VERTICAL"/>
 
-            <Button text="Clear" onAction="#onClear"/>
-            <Button text="Logout" onAction="#onLogout"/>
-        </ToolBar>
+                <Button text="Clear" onAction="#onClear"/>
+                <Button text="Logout" onAction="#onLogout"/>
+            </ToolBar>
+            <Canvas fx:id="topRuler" height="24" style="-fx-background-color: #f3f4f6;"/>
+        </VBox>
     </top>
+
+    <left>
+        <Canvas fx:id="leftRuler" width="24" style="-fx-background-color: #f3f4f6;"/>
+    </left>
 
     <center>
         <StackPane fx:id="canvasHost" style="-fx-background-color: #d0d0d0;" BorderPane.alignment="CENTER">
@@ -40,6 +48,8 @@
                 <Pane fx:id="drawingPane"
                       style="-fx-background-color: white; -fx-border-color: black;"
                       prefWidth="600" prefHeight="600"
+                      onMouseMoved="#onMouseMoved"
+                      onMouseExited="#onMouseExited"
                       onMousePressed="#onMousePressed"
                       onMouseDragged="#onMouseDragged"
                       onMouseReleased="#onMouseReleased"/>

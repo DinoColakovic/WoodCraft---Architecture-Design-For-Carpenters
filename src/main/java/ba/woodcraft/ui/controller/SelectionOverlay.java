@@ -9,6 +9,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.transform.Affine;
 
 public class SelectionOverlay {
 
@@ -24,10 +25,12 @@ public class SelectionOverlay {
     private Pane host;
     private boolean active;
     private DragMode dragMode = DragMode.NONE;
-    private Point2D dragStartScene;
+    private Point2D dragStartParent;
     private Bounds dragStartBounds;
     private double startLayoutX;
     private double startLayoutY;
+    private double startTranslateX;
+    private double startTranslateY;
     private double startScaleX;
     private double startScaleY;
     private double startRotate;
@@ -102,6 +105,7 @@ public class SelectionOverlay {
     public void clear() {
         target = null;
         dragMode = DragMode.NONE;
+        overlayGroup.getTransforms().clear();
         setVisible(false);
     }
 
@@ -146,18 +150,22 @@ public class SelectionOverlay {
     private void beginMove(MouseEvent event) {
         if (target == null) return;
         dragMode = DragMode.MOVE;
-        dragStartScene = new Point2D(event.getSceneX(), event.getSceneY());
+        dragStartParent = toParentPoint(event);
         startLayoutX = target.getLayoutX();
         startLayoutY = target.getLayoutY();
+        startTranslateX = target.getTranslateX();
+        startTranslateY = target.getTranslateY();
         event.consume();
     }
 
     private void updateMove(MouseEvent event) {
         if (target == null || dragMode != DragMode.MOVE) return;
-        Point2D current = new Point2D(event.getSceneX(), event.getSceneY());
-        Point2D delta = current.subtract(dragStartScene);
-        target.setLayoutX(startLayoutX + delta.getX());
-        target.setLayoutY(startLayoutY + delta.getY());
+        Point2D current = toParentPoint(event);
+        Point2D delta = current.subtract(dragStartParent);
+        target.setLayoutX(startLayoutX);
+        target.setLayoutY(startLayoutY);
+        target.setTranslateX(startTranslateX + delta.getX());
+        target.setTranslateY(startTranslateY + delta.getY());
         update();
         event.consume();
     }
@@ -165,7 +173,7 @@ public class SelectionOverlay {
     private void beginResize(MouseEvent event, DragMode mode) {
         if (target == null) return;
         dragMode = mode;
-        dragStartScene = new Point2D(event.getSceneX(), event.getSceneY());
+        dragStartParent = toParentPoint(event);
         dragStartBounds = target.getBoundsInParent();
         startScaleX = target.getScaleX();
         startScaleY = target.getScaleY();
@@ -176,8 +184,8 @@ public class SelectionOverlay {
 
     private void updateResize(MouseEvent event) {
         if (target == null || !dragMode.name().startsWith("RESIZE")) return;
-        Point2D current = new Point2D(event.getSceneX(), event.getSceneY());
-        Point2D delta = current.subtract(dragStartScene);
+        Point2D current = toParentPoint(event);
+        Point2D delta = current.subtract(dragStartParent);
         double width = Math.max(1.0, dragStartBounds.getWidth());
         double height = Math.max(1.0, dragStartBounds.getHeight());
         double scaleX = startScaleX;
@@ -217,7 +225,7 @@ public class SelectionOverlay {
     private void beginRotate(MouseEvent event) {
         if (target == null) return;
         dragMode = DragMode.ROTATE;
-        dragStartScene = new Point2D(event.getSceneX(), event.getSceneY());
+        dragStartParent = toParentPoint(event);
         dragStartBounds = target.getBoundsInParent();
         startRotate = target.getRotate();
         anchorX = dragStartBounds.getMinX() + dragStartBounds.getWidth() / 2.0;
@@ -227,10 +235,10 @@ public class SelectionOverlay {
 
     private void updateRotate(MouseEvent event) {
         if (target == null || dragMode != DragMode.ROTATE) return;
-        Point2D current = new Point2D(event.getSceneX(), event.getSceneY());
+        Point2D current = toParentPoint(event);
         double startAngle = Math.toDegrees(Math.atan2(
-                dragStartScene.getY() - anchorY,
-                dragStartScene.getX() - anchorX
+                dragStartParent.getY() - anchorY,
+                dragStartParent.getX() - anchorX
         ));
         double currentAngle = Math.toDegrees(Math.atan2(
                 current.getY() - anchorY,
@@ -241,6 +249,13 @@ public class SelectionOverlay {
         event.consume();
     }
 
+    private Point2D toParentPoint(MouseEvent event) {
+        if (host == null) {
+            return new Point2D(event.getSceneX(), event.getSceneY());
+        }
+        return host.sceneToLocal(event.getSceneX(), event.getSceneY());
+    }
+
     private void endDrag() {
         dragMode = DragMode.NONE;
     }
@@ -248,7 +263,8 @@ public class SelectionOverlay {
     public void update() {
         if (target == null || host == null) return;
         overlayGroup.toFront();
-        Bounds bounds = target.getBoundsInParent();
+        Bounds bounds = target.getBoundsInLocal();
+        overlayGroup.getTransforms().setAll(new Affine(target.getLocalToParentTransform()));
         outline.setX(bounds.getMinX());
         outline.setY(bounds.getMinY());
         outline.setWidth(bounds.getWidth());
