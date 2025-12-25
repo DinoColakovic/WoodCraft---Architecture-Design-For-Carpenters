@@ -1,5 +1,6 @@
 package ba.woodcraft.ui.controller;
 
+
 import ba.woodcraft.export.CanvasDocument;
 import ba.woodcraft.export.ExportFormat;
 import ba.woodcraft.export.ExportServiceRegistry;
@@ -18,6 +19,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.MouseEvent;
@@ -28,8 +30,10 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.CubicCurve;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Shape;
 import javafx.geometry.Pos;
 import javafx.stage.FileChooser;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -62,6 +66,9 @@ public class CanvasController {
     @FXML private ToggleButton bezierTool;
     @FXML private ToggleButton selectTool;
 
+    //  ColorPicker iz FXML-a
+    @FXML private ColorPicker colorPicker;
+
     private Tool activeTool = Tool.FREEHAND;
     private Drawable activeShape;
     private BezierCurveShape activeBezier;
@@ -82,6 +89,9 @@ public class CanvasController {
     private static final double ZOOM_STEP = 1.1;
     private static final double ZOOM_MIN = 0.3;
     private static final double ZOOM_MAX = 4.0;
+
+    // aktivna boja za crtanje
+    private Color activeColor = Color.web("#374151"); // tamna siva
 
     @FXML
     public void initialize() {
@@ -160,6 +170,20 @@ public class CanvasController {
         topRuler.widthProperty().addListener((obs, oldValue, newValue) -> drawRulers());
         leftRuler.heightProperty().addListener((obs, oldValue, newValue) -> drawRulers());
         leftRuler.widthProperty().addListener((obs, oldValue, newValue) -> drawRulers());
+
+        //  inicijalizacija ColorPickera
+        if (colorPicker != null) {
+            colorPicker.setValue(activeColor);
+            colorPicker.valueProperty().addListener((obs, oldColor, newColor) -> {
+                if (newColor != null) {
+                    activeColor = newColor;
+                    // ako je nešto selektovano, odmah mu promijeni boju
+                    if (selectedNode != null) {
+                        applyColorToNode(selectedNode, activeColor);
+                    }
+                }
+            });
+        }
 
         applyZoom();
     }
@@ -265,7 +289,11 @@ public class CanvasController {
             handleBezierPress(p);
         } else {
             activeShape = createShape(p.getX(), p.getY());
-            if (activeShape != null) drawingPane.getChildren().add(activeShape.getNode());
+            if (activeShape != null) {
+                drawingPane.getChildren().add(activeShape.getNode());
+                //  odmah primijeni trenutnu boju na novi oblik
+                applyActiveColor(activeShape);
+            }
         }
         hideSnapIndicator();
     }
@@ -369,6 +397,8 @@ public class CanvasController {
         if (bezierStage == BezierStage.NONE) {
             activeBezier = new BezierCurveShape(point.getX(), point.getY());
             drawingPane.getChildren().add(activeBezier.getNode());
+            // 🎨 i Bezier krivulja odmah dobije boju
+            applyActiveColor(activeBezier);
             bezierStage = BezierStage.END;
             return;
         }
@@ -567,4 +597,20 @@ public class CanvasController {
         }
     }
 
+    // primjena boje na novi Drawable
+    private void applyActiveColor(Drawable drawable) {
+        if (drawable == null) return;
+        Node node = drawable.getNode();
+        applyColorToNode(node, activeColor);
+    }
+
+    //  promjena boje na Node (line, rect, circle, bezier, freehand...)
+    private void applyColorToNode(Node node, Color color) {
+        if (node instanceof Shape shape) {
+            shape.setEffect(null);              // bez sjenki, bez gluposti
+            shape.setStroke(color);             // linija u boji
+            shape.setStrokeWidth(2.0);          // debljina linije
+            shape.setFill(Color.TRANSPARENT);   // bez ispune
+        }
+    }
 }

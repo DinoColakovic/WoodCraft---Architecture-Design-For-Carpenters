@@ -1,15 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="ba.woodcraft.ui.controller.AdminController"
-      alignment="CENTER" spacing="12">
+      fx:id="root"
+      alignment="CENTER"
+      spacing="18"
+      stylesheets="@/styles/auth.css"
+      styleClass="auth-root">
 
-    <Label text="Admin Dashboard" />
-    <Label fx:id="welcomeLabel" text="Dobrodošli, admin!" />
+    <!-- HEADER -->
+    <VBox alignment="CENTER" spacing="4">
+        <!-- Logo -->
+        <ImageView fx:id="logoImage"
+                   fitHeight="180"
+                   preserveRatio="true"
+                   styleClass="logo-image">
+            <image>
+                <Image url="@/images/logo.png"/>
+            </image>
+        </ImageView>
 
-    <Button text="Open Canvas" onAction="#onOpenCanvas" maxWidth="200"/>
-    <Button text="Logout" onAction="#onLogout" maxWidth="200"/>
+        <!-- Naslov i podnaslov -->
+        <Label text="WoodCraft" styleClass="app-title"/>
+        <Label fx:id="welcomeLabel"
+               text="Dobrodošli (ADMIN)"
+               styleClass="subtitle-label"/>
+    </VBox>
+
+    <!-- Dugmad -->
+    <Button text="Otvori Canvas"
+            maxWidth="260"
+            styleClass="primary-button"
+            onAction="#onOpenCanvas"/>
+
+    <Button text="Odjava"
+            maxWidth="260"
+            styleClass="primary-button"
+            onAction="#onLogout"/>
+
 </VBox>

@@ -7,14 +7,26 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 
 public class RegisterController {
+
+    @FXML private VBox root;           // <VBox fx:id="root" ...>
+    @FXML private ImageView logoImage; // <ImageView fx:id="logoImage" ...>
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
     @FXML private PasswordField confirmField;
 
     private final UserDAO userDAO = new UserDAO();
+
+    @FXML
+    public void initialize() {
+        if (root != null && logoImage != null) {
+            logoImage.fitHeightProperty().bind(root.heightProperty().multiply(0.40));
+        }
+    }
 
     @FXML
     public void onRegister(ActionEvent event) {

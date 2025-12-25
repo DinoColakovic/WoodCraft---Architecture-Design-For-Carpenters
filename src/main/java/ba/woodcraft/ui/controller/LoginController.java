@@ -7,16 +7,27 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import ba.woodcraft.ui.controller.AdminController;
-import ba.woodcraft.ui.controller.UserController;
-import ba.woodcraft.ui.controller.SceneNavigator;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 
 public class LoginController {
+
+    @FXML private VBox root;          // <VBox fx:id="root" ...>
+    @FXML private ImageView logoImage; // <ImageView fx:id="logoImage" ...>
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
 
     private final UserDAO userDAO = new UserDAO();
+
+    @FXML
+    public void initialize() {
+        // povećava smanjuje logo u odnosu na veličinu prozora
+        if (root != null && logoImage != null) {
+            logoImage.fitHeightProperty().bind(root.heightProperty().multiply(0.40));
+            // po želji 0.25, 0.35...
+        }
+    }
 
     @FXML
     public void onLogin(ActionEvent event) {
@@ -40,7 +51,6 @@ public class LoginController {
             return;
         }
 
-        // ✅ Redirect po ulozi
         String role = user.role();
 
         if ("ADMIN".equalsIgnoreCase(role)) {

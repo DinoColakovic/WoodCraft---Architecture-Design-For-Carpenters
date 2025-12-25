@@ -1,0 +1,72 @@
+/* Glavni container za login/register */
+.auth-root {
+    -fx-padding: 30;
+    -fx-spacing: 16;
+    -fx-alignment: center;
+     -fx-background-color: #ffffff;
+}
+
+/* Logo */
+.logo-image {
+    -fx-opacity: 0.88;
+    -fx-effect: null;
+}
+/* Naslov aplikacije */
+.app-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2f3b4c;
+}
+
+/* Podnaslov (opis) */
+.subtitle-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #5f6b7a;
+}
+
+/* TextField i PasswordField */
+
+.auth-field {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 8 10;
+    -fx-border-color: #C8C8C8; /* siva granica */
+    -fx-border-width: 1;
+    -fx-background-color: #FFFFFF; /* bijelo */
+    -fx-prompt-text-fill: #9A9A9A; /* svijetlo siva */
+}
+
+
+.auth-field:focused {
+    -fx-border-color: #8F8F8F; /* malo tamnija siva */
+    -fx-effect: none; /* nema plavog sjaja */
+}
+
+/* Primarno dugme */
+.primary-button {
+    -fx-background-color: linear-gradient(to right, #90BB77, #9BC185);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 10;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.18), 10, 0.3, 0, 2);
+}
+
+.primary-button:hover {
+    -fx-background-color: linear-gradient(to right, #a6c892, #B1CFA0);
+}
+
+.primary-button:pressed {
+    -fx-translate-y: 1;
+}
+
+/* Link ispod */
+.secondary-link {
+    -fx-text-fill: #2f5adf;
+    -fx-font-size: 12px;
+}
+
+.secondary-link:hover {
+    -fx-underline: true;
+}

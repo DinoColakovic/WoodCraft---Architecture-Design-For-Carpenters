@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.Group?>
-
+<?import javafx.scene.control.ColorPicker?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="ba.woodcraft.ui.controller.CanvasController"
@@ -21,7 +21,8 @@
                 <ToggleButton fx:id="bezierTool" text="Bezier"/>
 
                 <Separator orientation="VERTICAL"/>
-
+                <!-- 🎨 Paleta boja -->
+                <ColorPicker fx:id="colorPicker" maxWidth="130"/>
                 <Button text="Zoom +" onAction="#onZoomIn"/>
                 <Button text="Zoom -" onAction="#onZoomOut"/>
                 <Button text="Reset" onAction="#onZoomReset"/>

@@ -1,21 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.control.Hyperlink?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.PasswordField?>
-<?import javafx.scene.control.TextField?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="ba.woodcraft.ui.controller.LoginController"
-      alignment="CENTER" spacing="12">
+      fx:id="root"
+      alignment="CENTER"
+      spacing="18"
+      stylesheets="@/styles/auth.css"
+      styleClass="auth-root">
 
-    <Label text="WoodCraft Login" />
+    <!-- HEADER: logo + naslovi bliže jedan drugom -->
+    <VBox alignment="CENTER" spacing="4">
+        <!-- Logo -->
+        <ImageView fx:id="logoImage"
+                   fitHeight="180"
+                   preserveRatio="true"
+                   styleClass="logo-image">
+            <image>
+                <Image url="@/images/logo.png" />
+            </image>
+        </ImageView>
 
-    <TextField fx:id="usernameField" promptText="Username" maxWidth="250"/>
-    <PasswordField fx:id="passwordField" promptText="Password" maxWidth="250"/>
+        <!-- Naslov i podnaslov -->
+        <Label text="WoodCraft" styleClass="app-title"/>
+        <Label text="Prijavite se na svoj račun" styleClass="subtitle-label"/>
+    </VBox>
 
-    <Button text="Login" maxWidth="250" onAction="#onLogin"/>
-    <Hyperlink text="Nemate račun? Registrujte se" onAction="#onOpenRegister"/>
+    <!-- Polja -->
+    <TextField fx:id="usernameField"
+               promptText="Korisničko ime"
+               maxWidth="260"
+               styleClass="auth-field"/>
+
+    <PasswordField fx:id="passwordField"
+                   promptText="Lozinka"
+                   maxWidth="260"
+                   styleClass="auth-field"/>
+
+    <!-- Dugme -->
+    <Button text="Prijava"
+            maxWidth="260"
+            styleClass="primary-button"
+            onAction="#onLogin"/>
+
+    <!-- Link -->
+    <Hyperlink text="Nemate račun? Registrujte se"
+               styleClass="secondary-link"
+               onAction="#onOpenRegister"/>
 
 </VBox>

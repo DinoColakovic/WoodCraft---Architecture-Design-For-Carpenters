@@ -1,20 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.control.Hyperlink?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="ba.woodcraft.ui.controller.RegisterController"
-      alignment="CENTER" spacing="12">
+      fx:id="root"
+      alignment="CENTER"
+      spacing="18"
+      stylesheets="@/styles/auth.css"
+      styleClass="auth-root">
 
-    <Label text="Registracija" />
+    <!-- HEADER: logo + naslovi bliže jedan drugom -->
+    <VBox alignment="CENTER" spacing="4">
+        <!-- Logo -->
+        <ImageView fx:id="logoImage"
+                   fitHeight="180"
+                   preserveRatio="true"
+                   styleClass="logo-image">
+            <image>
+                <Image url="@/images/logo.png" />
+            </image>
+        </ImageView>
 
-    <TextField fx:id="usernameField" promptText="Username" maxWidth="250"/>
-    <PasswordField fx:id="passwordField" promptText="Password" maxWidth="250"/>
-    <PasswordField fx:id="confirmField" promptText="Potvrdi password" maxWidth="250"/>
+        <!-- Naslov i podnaslov -->
+        <Label text="WoodCraft" styleClass="app-title"/>
+        <Label text="Kreirajte novi račun" styleClass="subtitle-label"/>
+    </VBox>
 
-    <Button text="Kreiraj račun" maxWidth="250" onAction="#onRegister"/>
+    <!-- Polja -->
+    <TextField fx:id="usernameField"
+               promptText="Korisničko ime"
+               maxWidth="260"
+               styleClass="auth-field"/>
 
-    <Hyperlink text="Već imate račun? Prijavite se" onAction="#onBackToLogin"/>
+    <PasswordField fx:id="passwordField"
+                   promptText="Lozinka"
+                   maxWidth="260"
+                   styleClass="auth-field"/>
+
+    <PasswordField fx:id="confirmField"
+                   promptText="Potvrdite lozinku"
+                   maxWidth="260"
+                   styleClass="auth-field"/>
+
+    <!-- Dugme -->
+    <Button text="Kreiraj račun"
+            maxWidth="260"
+            styleClass="primary-button"
+            onAction="#onRegister"/>
+
+    <!-- Link -->
+    <Hyperlink text="Već imate račun? Prijavite se"
+               styleClass="secondary-link"
+               onAction="#onBackToLogin"/>
+
 </VBox>
