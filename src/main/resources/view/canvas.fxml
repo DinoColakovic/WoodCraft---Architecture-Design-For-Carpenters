@@ -40,6 +40,8 @@
                 <Pane fx:id="drawingPane"
                       style="-fx-background-color: white; -fx-border-color: black;"
                       prefWidth="600" prefHeight="600"
+                      onMouseMoved="#onMouseMoved"
+                      onMouseExited="#onMouseExited"
                       onMousePressed="#onMousePressed"
                       onMouseDragged="#onMouseDragged"
                       onMouseReleased="#onMouseReleased"/>

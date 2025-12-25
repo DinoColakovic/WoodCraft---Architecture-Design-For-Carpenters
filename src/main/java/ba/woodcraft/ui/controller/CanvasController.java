@@ -16,6 +16,10 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.CubicCurve;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 
 public class CanvasController {
@@ -43,6 +47,11 @@ public class CanvasController {
     private Drawable activeShape;
     private Node selectedNode;
     private SelectionOverlay selectionOverlay;
+    private Circle snapIndicator;
+    private Point2D snapPoint;
+
+    private static final double SNAP_RADIUS = 10.0;
+    private static final double SNAP_INDICATOR_RADIUS = 4.0;
 
     private double zoom = 1.0;
     private static final double ZOOM_STEP = 1.1;
@@ -74,12 +83,15 @@ public class CanvasController {
                 activeTool = Tool.FREEHAND;
                 clearSelection();
                 selectionOverlay.setActive(false);
+                hideSnapIndicator();
             } else if (newToggle == selectTool) {
                 activeTool = Tool.SELECT;
                 selectionOverlay.setActive(true);
+                hideSnapIndicator();
             } else {
                 clearSelection();
                 selectionOverlay.setActive(false);
+                hideSnapIndicator();
                 if (newToggle == lineTool) activeTool = Tool.LINE;
                 else if (newToggle == rectangleTool) activeTool = Tool.RECTANGLE;
                 else if (newToggle == circleTool) activeTool = Tool.CIRCLE;
@@ -98,6 +110,15 @@ public class CanvasController {
         selectionOverlay = new SelectionOverlay();
         selectionOverlay.attachTo(drawingPane);
         selectionOverlay.setActive(false);
+
+        snapIndicator = new Circle(SNAP_INDICATOR_RADIUS);
+        snapIndicator.setFill(Color.WHITE);
+        snapIndicator.setStroke(Color.web("#3b82f6"));
+        snapIndicator.setStrokeWidth(1.2);
+        snapIndicator.setManaged(false);
+        snapIndicator.setMouseTransparent(true);
+        snapIndicator.setVisible(false);
+        drawingPane.getChildren().add(snapIndicator);
 
         applyZoom();
     }
@@ -139,8 +160,10 @@ public class CanvasController {
     public void onClear() {
         drawingPane.getChildren().clear();
         selectionOverlay.attachTo(drawingPane);
+        drawingPane.getChildren().add(snapIndicator);
         clearSelection();
         selectionOverlay.setActive(activeTool == Tool.SELECT);
+        hideSnapIndicator();
     }
 
     @FXML
@@ -172,9 +195,10 @@ public class CanvasController {
         }
 
         clearSelection();
-        Point2D p = getCanvasPoint(event);
+        Point2D p = snapPoint != null ? snapPoint : getCanvasPoint(event);
         activeShape = createShape(p.getX(), p.getY());
         if (activeShape != null) drawingPane.getChildren().add(activeShape.getNode());
+        hideSnapIndicator();
     }
 
     @FXML
@@ -198,6 +222,27 @@ public class CanvasController {
             activeShape.update(p.getX(), p.getY());
             activeShape = null;
         }
+        hideSnapIndicator();
+    }
+
+    @FXML
+    public void onMouseMoved(MouseEvent event) {
+        if (!isSnapToolActive() || activeShape != null) {
+            hideSnapIndicator();
+            return;
+        }
+        Point2D cursor = getCanvasPoint(event);
+        Point2D point = findSnapPoint(cursor);
+        if (point != null) {
+            showSnapIndicator(point);
+        } else {
+            hideSnapIndicator();
+        }
+    }
+
+    @FXML
+    public void onMouseExited(MouseEvent event) {
+        hideSnapIndicator();
     }
 
     private void setSelectedNode(Node node) {
@@ -210,11 +255,15 @@ public class CanvasController {
         selectionOverlay.clear();
     }
 
+    private boolean isSnapToolActive() {
+        return activeTool != Tool.SELECT && activeTool != Tool.FREEHAND;
+    }
+
     private Node findSelectableNode(MouseEvent event) {
         Point2D scenePoint = new Point2D(event.getSceneX(), event.getSceneY());
         for (int i = drawingPane.getChildren().size() - 1; i >= 0; i--) {
             Node node = drawingPane.getChildren().get(i);
-            if (!node.isVisible() || selectionOverlay.isOverlayNode(node)) {
+            if (!node.isVisible() || selectionOverlay.isOverlayNode(node) || node == snapIndicator) {
                 continue;
             }
             Point2D localPoint = node.sceneToLocal(scenePoint);
@@ -234,5 +283,109 @@ public class CanvasController {
             case BEZIER -> new BezierCurveShape(x, y);
             case SELECT -> null;
         };
+    }
+
+    private void showSnapIndicator(Point2D point) {
+        snapPoint = point;
+        snapIndicator.setCenterX(point.getX());
+        snapIndicator.setCenterY(point.getY());
+        snapIndicator.setVisible(true);
+        snapIndicator.toFront();
+    }
+
+    private void hideSnapIndicator() {
+        snapPoint = null;
+        snapIndicator.setVisible(false);
+    }
+
+    private Point2D findSnapPoint(Point2D cursor) {
+        double bestDistance = SNAP_RADIUS;
+        Point2D best = null;
+        for (Node node : drawingPane.getChildren()) {
+            if (!node.isVisible() || node == snapIndicator || selectionOverlay.isOverlayNode(node)) {
+                continue;
+            }
+
+            if (node instanceof Line line) {
+                Point2D start = line.localToParent(line.getStartX(), line.getStartY());
+                Point2D end = line.localToParent(line.getEndX(), line.getEndY());
+                best = updateBestPoint(cursor, start, best, bestDistance);
+                bestDistance = best == null ? bestDistance : cursor.distance(best);
+                best = updateBestPoint(cursor, end, best, bestDistance);
+                bestDistance = best == null ? bestDistance : cursor.distance(best);
+                Point2D nearest = nearestPointOnSegment(start, end, cursor);
+                best = updateBestPoint(cursor, nearest, best, bestDistance);
+                bestDistance = best == null ? bestDistance : cursor.distance(best);
+            } else if (node instanceof CubicCurve curve) {
+                Point2D start = curve.localToParent(curve.getStartX(), curve.getStartY());
+                Point2D end = curve.localToParent(curve.getEndX(), curve.getEndY());
+                best = updateBestPoint(cursor, start, best, bestDistance);
+                bestDistance = best == null ? bestDistance : cursor.distance(best);
+                best = updateBestPoint(cursor, end, best, bestDistance);
+                bestDistance = best == null ? bestDistance : cursor.distance(best);
+            }
+
+            Point2D boundsPoint = nearestPointOnBounds(node.getBoundsInParent(), cursor);
+            best = updateBestPoint(cursor, boundsPoint, best, bestDistance);
+            bestDistance = best == null ? bestDistance : cursor.distance(best);
+        }
+        return best;
+    }
+
+    private Point2D updateBestPoint(Point2D cursor, Point2D candidate, Point2D currentBest, double currentDistance) {
+        if (candidate == null) {
+            return currentBest;
+        }
+        double distance = cursor.distance(candidate);
+        if (distance <= currentDistance) {
+            return candidate;
+        }
+        return currentBest;
+    }
+
+    private Point2D nearestPointOnSegment(Point2D start, Point2D end, Point2D point) {
+        double dx = end.getX() - start.getX();
+        double dy = end.getY() - start.getY();
+        double lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared == 0) {
+            return start;
+        }
+        double t = ((point.getX() - start.getX()) * dx + (point.getY() - start.getY()) * dy) / lengthSquared;
+        t = Math.max(0, Math.min(1, t));
+        return new Point2D(start.getX() + t * dx, start.getY() + t * dy);
+    }
+
+    private Point2D nearestPointOnBounds(javafx.geometry.Bounds bounds, Point2D point) {
+        double minX = bounds.getMinX();
+        double maxX = bounds.getMaxX();
+        double minY = bounds.getMinY();
+        double maxY = bounds.getMaxY();
+
+        double x = clamp(point.getX(), minX, maxX);
+        double y = clamp(point.getY(), minY, maxY);
+
+        boolean insideX = point.getX() >= minX && point.getX() <= maxX;
+        boolean insideY = point.getY() >= minY && point.getY() <= maxY;
+        if (insideX && insideY) {
+            double leftDist = point.getX() - minX;
+            double rightDist = maxX - point.getX();
+            double topDist = point.getY() - minY;
+            double bottomDist = maxY - point.getY();
+            double minDist = Math.min(Math.min(leftDist, rightDist), Math.min(topDist, bottomDist));
+            if (minDist == leftDist) {
+                x = minX;
+                y = point.getY();
+            } else if (minDist == rightDist) {
+                x = maxX;
+                y = point.getY();
+            } else if (minDist == topDist) {
+                x = point.getX();
+                y = minY;
+            } else {
+                x = point.getX();
+                y = maxY;
+            }
+        }
+        return new Point2D(x, y);
     }
 }
