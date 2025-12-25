@@ -1,5 +1,8 @@
 package ba.woodcraft.ui.controller;
 
+import ba.woodcraft.export.CanvasDocument;
+import ba.woodcraft.export.ExportFormat;
+import ba.woodcraft.export.ExportServiceRegistry;
 import ba.woodcraft.model.BezierCurveShape;
 import ba.woodcraft.model.CircleShape;
 import ba.woodcraft.model.Drawable;
@@ -20,28 +23,15 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Paint;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.shape.ClosePath;
 import javafx.scene.shape.CubicCurve;
-import javafx.scene.shape.CubicCurveTo;
 import javafx.scene.shape.Line;
-import javafx.scene.shape.LineTo;
-import javafx.scene.shape.MoveTo;
-import javafx.scene.shape.Path;
-import javafx.scene.shape.PathElement;
-import javafx.scene.shape.QuadCurveTo;
 import javafx.scene.shape.Rectangle;
 import javafx.geometry.Pos;
 import javafx.stage.FileChooser;
 import java.io.File;
 import java.io.IOException;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.util.Matrix;
 
 public class CanvasController {
 
@@ -52,6 +42,12 @@ public class CanvasController {
         RECTANGLE,
         CIRCLE,
         BEZIER
+    }
+
+    private enum BezierStage {
+        NONE,
+        END,
+        CONTROL
     }
 
     @FXML private StackPane canvasHost;
@@ -68,10 +64,13 @@ public class CanvasController {
 
     private Tool activeTool = Tool.FREEHAND;
     private Drawable activeShape;
+    private BezierCurveShape activeBezier;
+    private BezierStage bezierStage = BezierStage.NONE;
     private Node selectedNode;
     private SelectionOverlay selectionOverlay;
     private Circle snapIndicator;
     private Point2D snapPoint;
+    private final ExportServiceRegistry exportServiceRegistry = new ExportServiceRegistry();
 
     private static final double SNAP_RADIUS = 10.0;
     private static final double SNAP_INDICATOR_RADIUS = 4.0;
@@ -107,11 +106,13 @@ public class CanvasController {
         toolGroup.selectedToggleProperty().addListener((obs, oldToggle, newToggle) -> {
             if (newToggle == null) {
                 activeTool = Tool.FREEHAND;
+                resetBezierState();
                 clearSelection();
                 selectionOverlay.setActive(false);
                 hideSnapIndicator();
             } else if (newToggle == selectTool) {
                 activeTool = Tool.SELECT;
+                resetBezierState();
                 selectionOverlay.setActive(true);
                 hideSnapIndicator();
             } else {
@@ -122,6 +123,9 @@ public class CanvasController {
                 else if (newToggle == rectangleTool) activeTool = Tool.RECTANGLE;
                 else if (newToggle == circleTool) activeTool = Tool.CIRCLE;
                 else if (newToggle == bezierTool) activeTool = Tool.BEZIER;
+                if (activeTool != Tool.BEZIER) {
+                    resetBezierState();
+                }
             }
         });
 
@@ -202,6 +206,7 @@ public class CanvasController {
         clearSelection();
         selectionOverlay.setActive(activeTool == Tool.SELECT);
         hideSnapIndicator();
+        resetBezierState();
     }
 
     @FXML
@@ -213,14 +218,18 @@ public class CanvasController {
     public void onExportPdf() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Export PDF");
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(
+                ExportFormat.PDF.getDescription(),
+                ExportFormat.PDF.getExtensionPattern()
+        ));
         File file = chooser.showSaveDialog(canvasHost.getScene().getWindow());
         if (file == null) {
             return;
         }
         try {
-            exportToPdf(file);
-        } catch (IOException ex) {
+            CanvasDocument document = new CanvasDocument(drawingPane, snapIndicator, selectionOverlay);
+            exportServiceRegistry.export(ExportFormat.PDF, document, file);
+        } catch (IOException | IllegalStateException ex) {
             Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to export PDF: " + ex.getMessage(), ButtonType.OK);
             alert.setHeaderText("Export failed");
             alert.showAndWait();
@@ -252,14 +261,22 @@ public class CanvasController {
 
         clearSelection();
         Point2D p = snapPoint != null ? snapPoint : getCanvasPoint(event);
-        activeShape = createShape(p.getX(), p.getY());
-        if (activeShape != null) drawingPane.getChildren().add(activeShape.getNode());
+        if (activeTool == Tool.BEZIER) {
+            handleBezierPress(p);
+        } else {
+            activeShape = createShape(p.getX(), p.getY());
+            if (activeShape != null) drawingPane.getChildren().add(activeShape.getNode());
+        }
         hideSnapIndicator();
     }
 
     @FXML
     public void onMouseDragged(MouseEvent event) {
         if (activeTool == Tool.SELECT) {
+            return;
+        }
+        if (activeTool == Tool.BEZIER) {
+            updateBezierPreview(getCanvasPoint(event));
             return;
         }
         if (activeShape != null) {
@@ -273,6 +290,9 @@ public class CanvasController {
         if (activeTool == Tool.SELECT) {
             return;
         }
+        if (activeTool == Tool.BEZIER) {
+            return;
+        }
         if (activeShape != null) {
             Point2D p = getCanvasPoint(event);
             activeShape.update(p.getX(), p.getY());
@@ -283,7 +303,7 @@ public class CanvasController {
 
     @FXML
     public void onMouseMoved(MouseEvent event) {
-        if (!isSnapToolActive() || activeShape != null) {
+        if (!isSnapToolActive() || activeShape != null || (activeTool == Tool.BEZIER && bezierStage != BezierStage.NONE)) {
             hideSnapIndicator();
             return;
         }
@@ -339,6 +359,41 @@ public class CanvasController {
             case BEZIER -> new BezierCurveShape(x, y);
             case SELECT -> null;
         };
+    }
+
+    private void handleBezierPress(Point2D point) {
+        if (bezierStage == BezierStage.NONE) {
+            activeBezier = new BezierCurveShape(point.getX(), point.getY());
+            drawingPane.getChildren().add(activeBezier.getNode());
+            bezierStage = BezierStage.END;
+            return;
+        }
+        if (bezierStage == BezierStage.END && activeBezier != null) {
+            activeBezier.setEnd(point.getX(), point.getY());
+            bezierStage = BezierStage.CONTROL;
+            return;
+        }
+        if (bezierStage == BezierStage.CONTROL && activeBezier != null) {
+            activeBezier.setControlPoints(point.getX(), point.getY());
+            activeBezier = null;
+            bezierStage = BezierStage.NONE;
+        }
+    }
+
+    private void updateBezierPreview(Point2D point) {
+        if (activeBezier == null) {
+            return;
+        }
+        if (bezierStage == BezierStage.END) {
+            activeBezier.setEnd(point.getX(), point.getY());
+        } else if (bezierStage == BezierStage.CONTROL) {
+            activeBezier.setControlPoints(point.getX(), point.getY());
+        }
+    }
+
+    private void resetBezierState() {
+        activeBezier = null;
+        bezierStage = BezierStage.NONE;
     }
 
     private void showSnapIndicator(Point2D point) {
@@ -508,167 +563,4 @@ public class CanvasController {
         }
     }
 
-    private void exportToPdf(File file) throws IOException {
-        double width = drawingPane.getPrefWidth();
-        double height = drawingPane.getPrefHeight();
-        PDDocument document = new PDDocument();
-        PDPage page = new PDPage(new PDRectangle((float) width, (float) height));
-        document.addPage(page);
-
-        try (PDPageContentStream content = new PDPageContentStream(document, page)) {
-            content.transform(new Matrix(1, 0, 0, -1, 0, (float) height));
-            for (Node node : drawingPane.getChildren()) {
-                if (!node.isVisible() || node == snapIndicator || selectionOverlay.isOverlayNode(node)) {
-                    continue;
-                }
-                drawNodeToPdf(content, node);
-            }
-        }
-
-        document.save(file);
-        document.close();
-    }
-
-    private void drawNodeToPdf(PDPageContentStream content, Node node) throws IOException {
-        javafx.scene.transform.Transform transform = node.getLocalToParentTransform();
-        Matrix matrix = new Matrix(
-                (float) transform.getMxx(),
-                (float) transform.getMyx(),
-                (float) transform.getMxy(),
-                (float) transform.getMyy(),
-                (float) transform.getTx(),
-                (float) transform.getTy()
-        );
-        content.saveGraphicsState();
-        content.transform(matrix);
-
-        if (node instanceof Line line) {
-            if (!applyStroke(content, line.getStroke(), line.getStrokeWidth())) {
-                content.restoreGraphicsState();
-                return;
-            }
-            content.moveTo((float) line.getStartX(), (float) line.getStartY());
-            content.lineTo((float) line.getEndX(), (float) line.getEndY());
-            content.stroke();
-        } else if (node instanceof Rectangle rect) {
-            boolean hasStroke = applyStroke(content, rect.getStroke(), rect.getStrokeWidth());
-            boolean hasFill = applyFill(content, rect.getFill());
-            content.addRect((float) rect.getX(), (float) rect.getY(), (float) rect.getWidth(), (float) rect.getHeight());
-            finishFillStroke(content, hasFill, hasStroke);
-        } else if (node instanceof Circle circle) {
-            boolean hasStroke = applyStroke(content, circle.getStroke(), circle.getStrokeWidth());
-            boolean hasFill = applyFill(content, circle.getFill());
-            drawCirclePath(content, circle.getCenterX(), circle.getCenterY(), circle.getRadius());
-            finishFillStroke(content, hasFill, hasStroke);
-        } else if (node instanceof CubicCurve curve) {
-            if (!applyStroke(content, curve.getStroke(), curve.getStrokeWidth())) {
-                content.restoreGraphicsState();
-                return;
-            }
-            content.moveTo((float) curve.getStartX(), (float) curve.getStartY());
-            content.curveTo(
-                    (float) curve.getControlX1(),
-                    (float) curve.getControlY1(),
-                    (float) curve.getControlX2(),
-                    (float) curve.getControlY2(),
-                    (float) curve.getEndX(),
-                    (float) curve.getEndY()
-            );
-            content.stroke();
-        } else if (node instanceof Path path) {
-            boolean hasStroke = applyStroke(content, path.getStroke(), path.getStrokeWidth());
-            boolean hasFill = applyFill(content, path.getFill());
-            drawPath(content, path);
-            finishFillStroke(content, hasFill, hasStroke);
-        }
-
-        content.restoreGraphicsState();
-    }
-
-    private boolean applyStroke(PDPageContentStream content, Paint paint, double width) throws IOException {
-        java.awt.Color color = toAwtColor(paint);
-        if (color == null) {
-            return false;
-        }
-        content.setStrokingColor(color);
-        content.setLineWidth((float) width);
-        return true;
-    }
-
-    private boolean applyFill(PDPageContentStream content, Paint paint) throws IOException {
-        java.awt.Color color = toAwtColor(paint);
-        if (color == null) {
-            return false;
-        }
-        content.setNonStrokingColor(color);
-        return true;
-    }
-
-    private java.awt.Color toAwtColor(Paint paint) {
-        if (!(paint instanceof Color color)) {
-            return null;
-        }
-        if (color.getOpacity() == 0) {
-            return null;
-        }
-        return new java.awt.Color((float) color.getRed(), (float) color.getGreen(), (float) color.getBlue(), (float) color.getOpacity());
-    }
-
-    private void finishFillStroke(PDPageContentStream content, boolean fill, boolean stroke) throws IOException {
-        if (fill && stroke) {
-            content.fillAndStroke();
-        } else if (fill) {
-            content.fill();
-        } else if (stroke) {
-            content.stroke();
-        }
-    }
-
-    private void drawCirclePath(PDPageContentStream content, double cx, double cy, double r) throws IOException {
-        double k = 0.552284749831;
-        double c = r * k;
-        content.moveTo((float) (cx + r), (float) cy);
-        content.curveTo((float) (cx + r), (float) (cy + c), (float) (cx + c), (float) (cy + r), (float) cx, (float) (cy + r));
-        content.curveTo((float) (cx - c), (float) (cy + r), (float) (cx - r), (float) (cy + c), (float) (cx - r), (float) cy);
-        content.curveTo((float) (cx - r), (float) (cy - c), (float) (cx - c), (float) (cy - r), (float) cx, (float) (cy - r));
-        content.curveTo((float) (cx + c), (float) (cy - r), (float) (cx + r), (float) (cy - c), (float) (cx + r), (float) cy);
-        content.closePath();
-    }
-
-    private void drawPath(PDPageContentStream content, Path path) throws IOException {
-        double currentX = 0;
-        double currentY = 0;
-        for (PathElement element : path.getElements()) {
-            if (element instanceof MoveTo moveTo) {
-                currentX = moveTo.getX();
-                currentY = moveTo.getY();
-                content.moveTo((float) currentX, (float) currentY);
-            } else if (element instanceof LineTo lineTo) {
-                currentX = lineTo.getX();
-                currentY = lineTo.getY();
-                content.lineTo((float) currentX, (float) currentY);
-            } else if (element instanceof CubicCurveTo curveTo) {
-                currentX = curveTo.getX();
-                currentY = curveTo.getY();
-                content.curveTo(
-                        (float) curveTo.getControlX1(),
-                        (float) curveTo.getControlY1(),
-                        (float) curveTo.getControlX2(),
-                        (float) curveTo.getControlY2(),
-                        (float) currentX,
-                        (float) currentY
-                );
-            } else if (element instanceof QuadCurveTo quadTo) {
-                double c1x = currentX + (2.0 / 3.0) * (quadTo.getControlX() - currentX);
-                double c1y = currentY + (2.0 / 3.0) * (quadTo.getControlY() - currentY);
-                double c2x = quadTo.getX() + (2.0 / 3.0) * (quadTo.getControlX() - quadTo.getX());
-                double c2y = quadTo.getY() + (2.0 / 3.0) * (quadTo.getControlY() - quadTo.getY());
-                currentX = quadTo.getX();
-                currentY = quadTo.getY();
-                content.curveTo((float) c1x, (float) c1y, (float) c2x, (float) c2y, (float) currentX, (float) currentY);
-            } else if (element instanceof ClosePath) {
-                content.closePath();
-            }
-        }
-    }
 }
